@@ -14,6 +14,7 @@ public class GameConfig {
     //Player settings.
     public static final double PLAYER_SPEED = 6.0;
     public static final double PLAYER_HEALTH = 100.0;
+    public static final long INVINCIBLE_DURATION = 1_000_000_000L;
     
     //Enemy settings.
     public static final double ENEMY_HEALTH = 100.0;
