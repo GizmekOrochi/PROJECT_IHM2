@@ -1,6 +1,9 @@
 package com.rpg.config;
 
 public class GameConfig {
+    //Game settings
+    public static final double TARGET_FPS = 60.0;
+    public static final long OPTIMAL_TIME = 1_000_000_000L / (long) TARGET_FPS;
     //Window and World settings.
     public static final int WINDOW_WIDTH = 800;
     public static final int WINDOW_HEIGHT = 600;
@@ -9,7 +12,7 @@ public class GameConfig {
     public static final int WORLD_HEIGHT = 1200;
     
     //Player settings.
-    public static final double PLAYER_SPEED = 3.0;
+    public static final double PLAYER_SPEED = 6.0;
     public static final double PLAYER_HEALTH = 100.0;
     
     //Enemy settings.

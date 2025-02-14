@@ -131,17 +131,30 @@ public class RPGGame {
     
     public void startGameLoop() {
         gameLoop = new AnimationTimer() {
+           private long lastUpdateTime = 0;
+        
             @Override
             public void handle(long now) {
-                update(now);
-                if (playerHealth <= 0) {
-                    System.out.println("Game Over!");
-                    stop();
-                }
-            }
-        };
-        gameLoop.start();
+                if (lastUpdateTime == 0) {
+                   lastUpdateTime = now;
+                   return;
+            	}
+            	long elapsedNanos = now - lastUpdateTime;
+            	if (elapsedNanos < GameConfig.OPTIMAL_TIME) {
+                	return;
+            	}
+            	lastUpdateTime = now;
+            	update(now);
+            
+            	if (playerHealth <= 0) {
+            	    System.out.println("Game Over!");
+            	    stop();
+            	}
+        	}
+    	};
+    	gameLoop.start();
     }
+
     
     private void update(long now) {
         updatePlayer();
