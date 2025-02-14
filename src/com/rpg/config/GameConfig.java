@@ -34,5 +34,11 @@ public class GameConfig {
     public static final double PLAYER_BULLET_DAMAGE = 20.0;
     public static final int PLAYER_AMMO_CAPACITY = 10;
     public static final double PLAYER_RELOAD_TIME = 2.0;
+
+    //Key bindings
+    public static String KEY_UP ="Z";
+    public static String KEY_DOWN ="S";
+    public static String KEY_LEFT ="Q";
+    public static String KEY_RIGHT ="D";
 }
 

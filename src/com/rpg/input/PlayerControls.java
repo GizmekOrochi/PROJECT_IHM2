@@ -21,11 +21,11 @@ public class PlayerControls {
     
     private ReloadListener reloadListener;
 
-    public PlayerControls() {
-        keyUp = KeyCode.Z;
-        keyDown = KeyCode.S;
-        keyLeft = KeyCode.Q;
-        keyRight = KeyCode.D;
+    public PlayerControls(String up,String down,String left,String right) {
+        keyUp = KeyCode.valueOf(up);
+        keyDown = KeyCode.valueOf(down);
+        keyLeft = KeyCode.valueOf(left);
+        keyRight = KeyCode.valueOf(right);
         shootButton = MouseButton.PRIMARY;
         reloadButton = MouseButton.SECONDARY;
         shooting = false;

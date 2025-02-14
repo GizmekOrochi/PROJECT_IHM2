@@ -37,7 +37,7 @@ public class RPGGame {
     
     private final EnvironmentMatrix environmentMatrix = new EnvironmentMatrix();
     private final EnemyMatrix enemyMatrix = new EnemyMatrix();
-    private final PlayerControls playerControls = new PlayerControls();
+    private PlayerControls playerControls = new PlayerControls(GameConfig.KEY_UP,GameConfig.KEY_DOWN,GameConfig.KEY_LEFT,GameConfig.KEY_RIGHT);
     
     private Weapon playerWeapon;
     
