@@ -1,4 +1,4 @@
-package com.rpg.entities;
+package com.rpg.gameobject;
 
 import javafx.scene.Node;
 import javafx.scene.paint.Color;

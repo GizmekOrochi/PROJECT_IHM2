@@ -5,11 +5,13 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import com.rpg.map.GameMap;
 
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
-        RPGGame game = new RPGGame();
+    	GameMap map = new GameMap();
+        RPGGame game = new RPGGame(map);
         Pane root = game.initialize();
         Scene scene = new Scene(root);
         game.addInputHandlers(scene);

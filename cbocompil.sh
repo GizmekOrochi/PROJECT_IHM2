@@ -5,8 +5,8 @@ SRC_DIR="src"
 BUILD_DIR="build"
 
 # Path to the JavaFX SDK lib and bin directories (adjust if necessary)
-JAVAFX_SDK="/home/lancelot/Desktop/zulu21.38.21-ca-fx-jdk21.0.5-linux_x64/lib"
-JAVAFX_BIN="/home/lancelot/Desktop/zulu21.38.21-ca-fx-jdk21.0.5-linux_x64/bin"
+JAVAFX_SDK="/home/lancelot/Desktop/zulu21.38.21"
+JAVAFX_BIN="/home/lancelot/Desktop/zulu21.38.21/bin"
 
 # Create the build directory if it doesn't exist
 mkdir -p "$BUILD_DIR"

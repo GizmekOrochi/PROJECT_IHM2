@@ -1,4 +1,6 @@
-package com.rpg.entities;
+package com.rpg.gameobject.entities;
+
+import com.rpg.gameobject.GameObject;
 
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;

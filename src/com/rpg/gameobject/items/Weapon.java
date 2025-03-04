@@ -1,4 +1,6 @@
-package com.rpg.entities;
+package com.rpg.gameobject.items;
+
+import com.rpg.gameobject.entities.Bullet;
 
 public class Weapon {
     private double fireRate;
