@@ -3,12 +3,11 @@ package com.rpg.game;
 import com.rpg.config.GameConfig;
 import com.rpg.gameobject.GameObjectEnum;
 import com.rpg.gameobject.entities.Bullet;
-import com.rpg.gameobject.entities.EnemyBullet;
 import com.rpg.gameobject.entities.Enemy;
+import com.rpg.gameobject.entities.EnemyBullet;
 import com.rpg.gameobject.items.Weapon;
 import com.rpg.input.PlayerControls;
 import com.rpg.map.GameMap;
-// IMPORTANT: use TiledMap instead of Map
 import com.rpg.map.TiledMap;
 
 import javafx.animation.AnimationTimer;
@@ -54,7 +53,19 @@ public class RPGGame {
     private static final double ENEMY_DAMAGE = GameConfig.ENEMY_DAMAGE;
     private boolean playerInvincible = false;
     private long invincibleStartTime = 0;
-    private static final long INVINCIBLE_DURATION = 1_000_000_000L;
+    private static final long INVINCIBLE_DURATION = GameConfig.INVINCIBLE_DURATION;
+
+    // Dodge parameters
+    private static final double DODGE_SPEED_MULTIPLIER = GameConfig.DODGE_SPEED_MULTIPLIER;
+    private static final long DODGE_DURATION = GameConfig.DODGE_DURATION;
+    
+    // NEW: a 5-second cooldown in nanoseconds
+    private static final long DODGE_COOLDOWN = GameConfig.DODGE_COOLDOWN;  // 5 seconds
+    private long nextDodgeAllowedTime = 0;  // The earliest time we can dodge again
+
+    // Dodge state
+    private boolean dodging = false;
+    private long dodgeStartTime = 0;
 
     // The overall game maps manager
     private final GameMap gameMap;
@@ -62,9 +73,7 @@ public class RPGGame {
     private TiledMap currentMap;
 
     public RPGGame(GameMap gameMap) {
-        // Store the passed-in GameMap
         this.gameMap = gameMap;
-        // Choose the TiledMap at level 1 by default
         this.currentMap = gameMap.getMap(1);
     }
 
@@ -80,8 +89,8 @@ public class RPGGame {
         createPlayer();
         spawnEnemies();
 
-        // IMPORTANT: Add the player rectangle to worldGroup, not root
         if (playerRect != null) {
+            // Add the player rectangle to worldGroup
             worldGroup.getChildren().add(playerRect);
         }
 
@@ -107,7 +116,6 @@ public class RPGGame {
 
         return root;
     }
-
 
     private Pane createRootPane() {
         Pane pane = new Pane();
@@ -138,7 +146,6 @@ public class RPGGame {
                 } else {
                     tile.setFill(Color.LIGHTGREEN);
                 }
-
                 worldGroup.getChildren().add(tile);
             }
         }
@@ -225,7 +232,7 @@ public class RPGGame {
     }
 
     private void update(long now) {
-        updatePlayer();
+        updatePlayer(now);
         updateEnemies();
         updateShooting(now);
         updateBullets();
@@ -236,17 +243,44 @@ public class RPGGame {
         checkPlayerEnemyCollisions(now);
     }
 
-    private void updatePlayer() {
+    /**
+     * Updated player movement that includes a 5-second dodge cooldown.
+     */
+    private void updatePlayer(long now) {
         double dx = 0, dy = 0;
+
         if (playerControls.isUp())    dy -= PLAYER_SPEED;
         if (playerControls.isDown())  dy += PLAYER_SPEED;
         if (playerControls.isLeft())  dx -= PLAYER_SPEED;
         if (playerControls.isRight()) dx += PLAYER_SPEED;
 
+        // Only start a dodge if:
+        // 1) The player requested a dodge,
+        // 2) We are not currently dodging,
+        // 3) Now is past the nextDodgeAllowedTime
+        if (playerControls.isDodgeRequested() && !dodging && now >= nextDodgeAllowedTime) {
+            startDodge(now);
+
+            // If you only want one dodge per SHIFT press:
+            playerControls.consumeDodgeRequest();
+        }
+
+        // If currently dodging, apply the dodge multiplier or end the dodge
+        if (dodging) {
+            long elapsed = now - dodgeStartTime;
+            if (elapsed < DODGE_DURATION) {
+                // Increase speed
+                dx *= DODGE_SPEED_MULTIPLIER;
+                dy *= DODGE_SPEED_MULTIPLIER;
+            } else {
+                endDodge(now);
+            }
+        }
+
         double newX = playerX + dx;
         double newY = playerY + dy;
 
-        // Collisions or clamping as needed
+        // Collisions or clamping
         if (!collides(newX, playerY)) {
             playerX = newX;
         }
@@ -257,13 +291,39 @@ public class RPGGame {
         playerX = clamp(playerX, 0, worldWidth - TILE_SIZE);
         playerY = clamp(playerY, 0, worldHeight - TILE_SIZE);
 
-        // CRITICAL: update the blue rectangle's position to match playerX/Y
+        // Update player's sprite position
         playerRect.setX(playerX);
         playerRect.setY(playerY);
     }
 
-    // Simplified "enemy.update()" call.
-    // If your Enemy class needs more data, pass it here.
+    /**
+     * Starts the dodge: set dodging=true, invincible, record start time
+     */
+    private void startDodge(long now) {
+        dodging = true;
+        dodgeStartTime = now;
+        playerInvincible = true;
+
+        // Optionally hide sprite to simulate a vanish
+        // playerRect.setVisible(false);
+
+        System.out.println("Player started dodging at " + now);
+    }
+
+    /**
+     * Ends the dodge: set dodging=false, remove invincibility, start cooldown
+     */
+    private void endDodge(long now) {
+        dodging = false;
+        playerInvincible = false;
+
+        // The 0.5-second cooldown means we can't dodge again before this time
+        nextDodgeAllowedTime = now + DODGE_COOLDOWN;
+
+        // If you hid the sprite, show it again
+        // playerRect.setVisible(true);
+    }
+
     private void updateEnemies() {
         for (Enemy enemy : enemies) {
             enemy.update(playerX, playerY, currentMap, enemies);
@@ -368,6 +428,7 @@ public class RPGGame {
                 continue;
             }
 
+            // Bullet hits the player
             if (eb.getSprite().getBoundsInParent().intersects(playerRect.getBoundsInParent())) {
                 if (!playerInvincible) {
                     playerHealth -= eb.getDamage();

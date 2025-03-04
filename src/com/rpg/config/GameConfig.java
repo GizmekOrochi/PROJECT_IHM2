@@ -12,6 +12,10 @@ public class GameConfig {
     public static final int WORLD_HEIGHT = 1200;
     
     //Player settings.
+    public static final long DODGE_COOLDOWN = 500_000_000L;
+    public static final double DODGE_SPEED_MULTIPLIER = 3.0;
+    public static final long DODGE_DURATION = 200_000_000L;
+    public static final long INVINCIBLE_DURATION = 1_000_000_000L;
     public static final double PLAYER_SPEED = 6.0;
     public static final double PLAYER_HEALTH = 100.0;
     

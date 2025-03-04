@@ -7,28 +7,27 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
 public class PlayerControls {
+    // Movement
     private boolean up, down, left, right;
     private boolean shooting;
+
+    // Dodge/roll
+    private boolean dodgeRequested;  // Set true if the user pressed SHIFT
+    private KeyCode dodgeKey = KeyCode.SHIFT;
+
     private double shootX, shootY;
-    
-    private KeyCode keyUp;
-    private KeyCode keyDown;
-    private KeyCode keyLeft;
-    private KeyCode keyRight;
-    
-    private MouseButton shootButton;
-    private MouseButton reloadButton;
-    
+
+    private KeyCode keyUp, keyDown, keyLeft, keyRight;
+    private MouseButton shootButton, reloadButton;
     private ReloadListener reloadListener;
 
     public PlayerControls() {
-        keyUp = KeyCode.Z;
-        keyDown = KeyCode.S;
-        keyLeft = KeyCode.Q;
-        keyRight = KeyCode.D;
-        shootButton = MouseButton.PRIMARY;
-        reloadButton = MouseButton.SECONDARY;
-        shooting = false;
+        this.keyUp = KeyCode.Z;
+        this.keyDown = KeyCode.S;
+        this.keyLeft = KeyCode.Q;
+        this.keyRight = KeyCode.D;
+        this.shootButton = MouseButton.PRIMARY;
+        this.reloadButton = MouseButton.SECONDARY;
     }
 
     public void attachInputHandlers(Scene scene) {
@@ -41,6 +40,7 @@ public class PlayerControls {
 
     private void handleKeyPressed(KeyEvent event) {
         KeyCode code = event.getCode();
+
         if (code == keyUp || code == KeyCode.UP) {
             up = true;
         }
@@ -53,10 +53,16 @@ public class PlayerControls {
         if (code == keyRight || code == KeyCode.RIGHT) {
             right = true;
         }
+
+        // Trigger a dodge when SHIFT is pressed
+        if (code == dodgeKey) {
+            dodgeRequested = true;
+        }
     }
 
     private void handleKeyReleased(KeyEvent event) {
         KeyCode code = event.getCode();
+
         if (code == keyUp || code == KeyCode.UP) {
             up = false;
         }
@@ -69,6 +75,12 @@ public class PlayerControls {
         if (code == keyRight || code == KeyCode.RIGHT) {
             right = false;
         }
+
+        // You might reset dodgeRequested here if you only want a single press
+        if (code == dodgeKey) {
+            // If you'd like to allow repeated dodges by releasing SHIFT, do:
+            dodgeRequested = false;
+        }
     }
 
     private void handleMousePressed(MouseEvent event) {
@@ -76,10 +88,8 @@ public class PlayerControls {
             shooting = true;
             shootX = event.getSceneX();
             shootY = event.getSceneY();
-        } else if (event.getButton() == reloadButton) {
-            if (reloadListener != null) {
-                reloadListener.onReload();
-            }
+        } else if (event.getButton() == reloadButton && reloadListener != null) {
+            reloadListener.onReload();
         }
     }
 
@@ -96,23 +106,31 @@ public class PlayerControls {
         }
     }
 
-    public boolean isUp() { return up; }
-    public boolean isDown() { return down; }
-    public boolean isLeft() { return left; }
+    // Movement flags
+    public boolean isUp()    { return up; }
+    public boolean isDown()  { return down; }
+    public boolean isLeft()  { return left; }
     public boolean isRight() { return right; }
 
+    // Shooting
     public boolean isShooting() { return shooting; }
-    public double getShootX() { return shootX; }
-    public double getShootY() { return shootY; }
+    public double getShootX()   { return shootX; }
+    public double getShootY()   { return shootY; }
 
-    public void setKeyUp(KeyCode key) { this.keyUp = key; }
-    public void setKeyDown(KeyCode key) { this.keyDown = key; }
-    public void setKeyLeft(KeyCode key) { this.keyLeft = key; }
-    public void setKeyRight(KeyCode key) { this.keyRight = key; }
+    // Dodge
+    public boolean isDodgeRequested() {
+        return dodgeRequested;
+    }
+    public void setDodgeKey(KeyCode key) {
+        this.dodgeKey = key;
+    }
 
-    public void setShootButton(MouseButton button) { this.shootButton = button; }
-    public void setReloadButton(MouseButton button) { this.reloadButton = button; }
+    // Provide a way for your game logic to consume this request if you like:
+    public void consumeDodgeRequest() {
+        dodgeRequested = false;
+    }
 
+    // Reload listener and interface
     public void setReloadListener(ReloadListener listener) {
         this.reloadListener = listener;
     }
@@ -121,4 +139,3 @@ public class PlayerControls {
         void onReload();
     }
 }
-
