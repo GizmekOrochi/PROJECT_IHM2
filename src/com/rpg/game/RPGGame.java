@@ -6,13 +6,9 @@ import com.rpg.gameobject.entities.Bullet;
 import com.rpg.gameobject.entities.Enemy;
 import com.rpg.gameobject.entities.EnemyBullet;
 import com.rpg.gameobject.items.Weapon;
-import com.rpg.input.PlayerControls;
 import com.rpg.map.GameMap;
 import com.rpg.map.TiledMap;
-
-import javafx.animation.AnimationTimer;
 import javafx.scene.Group;
-import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -26,28 +22,22 @@ public class RPGGame {
     private static final int WINDOW_HEIGHT = GameConfig.WINDOW_HEIGHT;
     private static final int TILE_SIZE = GameConfig.TILE_SIZE;
 
-    // We'll compute these after we know the map's dimensions
     private double worldWidth;
     private double worldHeight;
 
-    // Player-related
     private static final double PLAYER_SPEED = GameConfig.PLAYER_SPEED;
     private double playerX, playerY;
     private double playerHealth = GameConfig.PLAYER_HEALTH;
     private Rectangle playerRect;
 
-    // Collections for walls, enemies, bullets
     private final List<Rectangle> walls = new ArrayList<>();
     private final List<Enemy> enemies = new ArrayList<>();
     private final List<Bullet> bullets = new ArrayList<>();
     private final List<EnemyBullet> enemyBullets = new ArrayList<>();
 
     private Group worldGroup;
-    private AnimationTimer gameLoop;
 
-    // Weapon and control handling
     private Weapon playerWeapon;
-    private final PlayerControls playerControls = new PlayerControls();
 
     // Damage / invincibility
     private static final double ENEMY_DAMAGE = GameConfig.ENEMY_DAMAGE;
@@ -58,19 +48,19 @@ public class RPGGame {
     // Dodge parameters
     private static final double DODGE_SPEED_MULTIPLIER = GameConfig.DODGE_SPEED_MULTIPLIER;
     private static final long DODGE_DURATION = GameConfig.DODGE_DURATION;
-    
-    // NEW: a 5-second cooldown in nanoseconds
-    private static final long DODGE_COOLDOWN = GameConfig.DODGE_COOLDOWN;  // 5 seconds
-    private long nextDodgeAllowedTime = 0;  // The earliest time we can dodge again
+    private static final long DODGE_COOLDOWN = GameConfig.DODGE_COOLDOWN;  // 5-second cooldown
+    private long nextDodgeAllowedTime = 0;
 
     // Dodge state
     private boolean dodging = false;
     private long dodgeStartTime = 0;
 
-    // The overall game maps manager
+    // Map & level
     private final GameMap gameMap;
-    // The specific TiledMap (level) we are currently in
     private TiledMap currentMap;
+
+    // ----- Input flags set externally by GameLauncher -----
+    private boolean moveUp, moveDown, moveLeft, moveRight, dodgeRequested;
 
     public RPGGame(GameMap gameMap) {
         this.gameMap = gameMap;
@@ -84,35 +74,27 @@ public class RPGGame {
         worldGroup = new Group();
         root.getChildren().add(worldGroup);
 
-        // Generate the tiles for the current map
+        // Generate map tiles, player, and enemies
         generateTiles();
         createPlayer();
         spawnEnemies();
 
         if (playerRect != null) {
-            // Add the player rectangle to worldGroup
             worldGroup.getChildren().add(playerRect);
         }
 
-        // Define total world size based on currentMap dimensions
         if (currentMap != null) {
             this.worldWidth = currentMap.getWidth() * TILE_SIZE;
             this.worldHeight = currentMap.getHeight() * TILE_SIZE;
         }
 
-        // Create player's weapon
+        // Create player's weapon and set up reload listener if needed
         playerWeapon = new Weapon(
                 GameConfig.PLAYER_SHOOT_INTERVAL,
                 GameConfig.PLAYER_BULLET_DAMAGE,
                 GameConfig.PLAYER_AMMO_CAPACITY,
                 GameConfig.PLAYER_BULLET_SPEED
         );
-
-        // Reload listener
-        playerControls.setReloadListener(() -> {
-            playerWeapon.reload();
-            System.out.println("Weapon reloaded.");
-        });
 
         return root;
     }
@@ -128,18 +110,15 @@ public class RPGGame {
             System.out.println("No map found at level 1!");
             return;
         }
-
         int width = currentMap.getWidth();
         int height = currentMap.getHeight();
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 GameObjectEnum tileObject = currentMap.getObjectAt(x, y);
-
                 Rectangle tile = new Rectangle(TILE_SIZE, TILE_SIZE);
                 tile.setX(x * TILE_SIZE);
                 tile.setY(y * TILE_SIZE);
-
                 if (tileObject == GameObjectEnum.WALL) {
                     tile.setFill(Color.GRAY);
                     walls.add(tile);
@@ -153,11 +132,8 @@ public class RPGGame {
 
     private void createPlayer() {
         if (currentMap == null) return;
-
         int width = currentMap.getWidth();
         int height = currentMap.getHeight();
-
-        // Find the PLAYER object in the TiledMap
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (currentMap.getObjectAt(x, y) == GameObjectEnum.PLAYER) {
@@ -174,11 +150,8 @@ public class RPGGame {
 
     private void spawnEnemies() {
         if (currentMap == null) return;
-
         int width = currentMap.getWidth();
         int height = currentMap.getHeight();
-
-        // Find ENEMY objects in the TiledMap
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (currentMap.getObjectAt(x, y) == GameObjectEnum.ENEMY) {
@@ -199,42 +172,62 @@ public class RPGGame {
         }
     }
 
-    public void addInputHandlers(Scene scene) {
-        playerControls.attachInputHandlers(scene);
+    // ----- Methods called by external input handlers -----
+
+    public void onMoveUp(boolean pressed) {
+        moveUp = pressed;
     }
 
-    public void startGameLoop() {
-        gameLoop = new AnimationTimer() {
-            private long lastUpdateTime = 0;
-
-            @Override
-            public void handle(long now) {
-                if (lastUpdateTime == 0) {
-                    lastUpdateTime = now;
-                    return;
-                }
-                long elapsedNanos = now - lastUpdateTime;
-                if (elapsedNanos < GameConfig.OPTIMAL_TIME) {
-                    return;
-                }
-                lastUpdateTime = now;
-
-                update(now);
-
-                // Check if player is dead
-                if (playerHealth <= 0) {
-                    System.out.println("Game Over!");
-                    stop();
-                }
-            }
-        };
-        gameLoop.start();
+    public void onMoveDown(boolean pressed) {
+        moveDown = pressed;
     }
 
-    private void update(long now) {
+    public void onMoveLeft(boolean pressed) {
+        moveLeft = pressed;
+    }
+
+    public void onMoveRight(boolean pressed) {
+        moveRight = pressed;
+    }
+
+    public void onDodgeRequest() {
+        dodgeRequested = true;
+    }
+
+    /**
+     * Called externally when shooting input is detected.
+     * @param sceneX The x coordinate of the mouse in scene space.
+     * @param sceneY The y coordinate of the mouse in scene space.
+     * @param now The current time.
+     */
+    public void onShoot(double sceneX, double sceneY, long now) {
+        // Convert scene coordinates to world coordinates
+        double worldX = sceneX - worldGroup.getTranslateX();
+        double worldY = sceneY - worldGroup.getTranslateY();
+        Bullet bullet = playerWeapon.shoot(
+                playerX + TILE_SIZE / 2.0,
+                playerY + TILE_SIZE / 2.0,
+                worldX, worldY,
+                now
+        );
+        if (bullet != null) {
+            bullets.add(bullet);
+            worldGroup.getChildren().add(bullet.getSprite());
+        }
+    }
+
+    /**
+     * Called externally to reload the player's weapon.
+     */
+    public void reloadWeapon() {
+        playerWeapon.reload();
+        System.out.println("Weapon reloaded.");
+    }
+
+    // ----- External update method -----
+    public void update(long now) {
         updatePlayer(now);
         updateEnemies();
-        updateShooting(now);
         updateBullets();
         updateEnemyShooting(now);
         updateEnemyBullets(now);
@@ -243,33 +236,21 @@ public class RPGGame {
         checkPlayerEnemyCollisions(now);
     }
 
-    /**
-     * Updated player movement that includes a 5-second dodge cooldown.
-     */
     private void updatePlayer(long now) {
         double dx = 0, dy = 0;
+        if (moveUp)    dy -= PLAYER_SPEED;
+        if (moveDown)  dy += PLAYER_SPEED;
+        if (moveLeft)  dx -= PLAYER_SPEED;
+        if (moveRight) dx += PLAYER_SPEED;
 
-        if (playerControls.isUp())    dy -= PLAYER_SPEED;
-        if (playerControls.isDown())  dy += PLAYER_SPEED;
-        if (playerControls.isLeft())  dx -= PLAYER_SPEED;
-        if (playerControls.isRight()) dx += PLAYER_SPEED;
-
-        // Only start a dodge if:
-        // 1) The player requested a dodge,
-        // 2) We are not currently dodging,
-        // 3) Now is past the nextDodgeAllowedTime
-        if (playerControls.isDodgeRequested() && !dodging && now >= nextDodgeAllowedTime) {
+        if (dodgeRequested && !dodging && now >= nextDodgeAllowedTime) {
             startDodge(now);
-
-            // If you only want one dodge per SHIFT press:
-            playerControls.consumeDodgeRequest();
+            dodgeRequested = false;
         }
 
-        // If currently dodging, apply the dodge multiplier or end the dodge
         if (dodging) {
             long elapsed = now - dodgeStartTime;
             if (elapsed < DODGE_DURATION) {
-                // Increase speed
                 dx *= DODGE_SPEED_MULTIPLIER;
                 dy *= DODGE_SPEED_MULTIPLIER;
             } else {
@@ -280,48 +261,30 @@ public class RPGGame {
         double newX = playerX + dx;
         double newY = playerY + dy;
 
-        // Collisions or clamping
         if (!collides(newX, playerY)) {
             playerX = newX;
         }
         if (!collides(playerX, newY)) {
             playerY = newY;
         }
-
         playerX = clamp(playerX, 0, worldWidth - TILE_SIZE);
         playerY = clamp(playerY, 0, worldHeight - TILE_SIZE);
 
-        // Update player's sprite position
         playerRect.setX(playerX);
         playerRect.setY(playerY);
     }
 
-    /**
-     * Starts the dodge: set dodging=true, invincible, record start time
-     */
     private void startDodge(long now) {
         dodging = true;
         dodgeStartTime = now;
         playerInvincible = true;
-
-        // Optionally hide sprite to simulate a vanish
-        // playerRect.setVisible(false);
-
         System.out.println("Player started dodging at " + now);
     }
 
-    /**
-     * Ends the dodge: set dodging=false, remove invincibility, start cooldown
-     */
     private void endDodge(long now) {
         dodging = false;
         playerInvincible = false;
-
-        // The 0.5-second cooldown means we can't dodge again before this time
         nextDodgeAllowedTime = now + DODGE_COOLDOWN;
-
-        // If you hid the sprite, show it again
-        // playerRect.setVisible(true);
     }
 
     private void updateEnemies() {
@@ -330,38 +293,16 @@ public class RPGGame {
         }
     }
 
-    private void updateShooting(long now) {
-        if (playerControls.isShooting()) {
-            double worldX = playerControls.getShootX() - worldGroup.getTranslateX();
-            double worldY = playerControls.getShootY() - worldGroup.getTranslateY();
-
-            Bullet bullet = playerWeapon.shoot(
-                    playerX + TILE_SIZE / 2.0,
-                    playerY + TILE_SIZE / 2.0,
-                    worldX, worldY,
-                    now
-            );
-            if (bullet != null) {
-                bullets.add(bullet);
-                worldGroup.getChildren().add(bullet.getSprite());
-            }
-        }
-    }
-
     private void updateBullets() {
         for (Iterator<Bullet> it = bullets.iterator(); it.hasNext();) {
             Bullet bullet = it.next();
             bullet.update();
-
-            // Out of bounds?
             if (bullet.getX() < 0 || bullet.getX() > worldWidth ||
                 bullet.getY() < 0 || bullet.getY() > worldHeight) {
                 worldGroup.getChildren().remove(bullet.getSprite());
                 it.remove();
                 continue;
             }
-
-            // Check wall collisions
             boolean hitWall = false;
             for (Rectangle wall : walls) {
                 if (bullet.getSprite().getBoundsInParent().intersects(wall.getBoundsInParent())) {
@@ -374,8 +315,6 @@ public class RPGGame {
                 it.remove();
                 continue;
             }
-
-            // Check enemy collisions
             for (Enemy enemy : enemies) {
                 if (enemy.getSprite().isVisible() &&
                     bullet.getSprite().getBoundsInParent().intersects(enemy.getSprite().getBoundsInParent())) {
@@ -406,15 +345,12 @@ public class RPGGame {
         for (Iterator<EnemyBullet> it = enemyBullets.iterator(); it.hasNext();) {
             EnemyBullet eb = it.next();
             eb.update();
-
-            // Out of bounds?
             if (eb.getX() < 0 || eb.getX() > worldWidth ||
                 eb.getY() < 0 || eb.getY() > worldHeight) {
                 worldGroup.getChildren().remove(eb.getSprite());
                 it.remove();
                 continue;
             }
-
             boolean hitWall = false;
             for (Rectangle wall : walls) {
                 if (eb.getSprite().getBoundsInParent().intersects(wall.getBoundsInParent())) {
@@ -427,8 +363,6 @@ public class RPGGame {
                 it.remove();
                 continue;
             }
-
-            // Bullet hits the player
             if (eb.getSprite().getBoundsInParent().intersects(playerRect.getBoundsInParent())) {
                 if (!playerInvincible) {
                     playerHealth -= eb.getDamage();
