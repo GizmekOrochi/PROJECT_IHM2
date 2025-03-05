@@ -1,4 +1,4 @@
-package com.rpg.input;
+package com.rpg.controler;
 
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
@@ -6,7 +6,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
-public class PlayerControls {
+public class GameControler {
     // Movement
     private boolean up, down, left, right;
     private boolean shooting;
@@ -21,7 +21,7 @@ public class PlayerControls {
     private MouseButton shootButton, reloadButton;
     private ReloadListener reloadListener;
 
-    public PlayerControls() {
+    public GameControler() {
         this.keyUp = KeyCode.Z;
         this.keyDown = KeyCode.S;
         this.keyLeft = KeyCode.Q;

@@ -88,20 +88,28 @@ public class Enemy extends GameObject {
      * Checks if the new position (newX, newY) is blocked by a wall tile in the TiledMap.
      */
     private boolean collidesWithWalls(double newX, double newY, TiledMap map) {
-        // Convert newX/newY to tile coordinates
-        int tileX = (int)(newX / TILE_SIZE);
-        int tileY = (int)(newY / TILE_SIZE);
+        // Determine the range of tiles that the enemy covers.
+        int leftTile = (int)(newX / TILE_SIZE);
+        int rightTile = (int)((newX + width - 1) / TILE_SIZE);
+        int topTile = (int)(newY / TILE_SIZE);
+        int bottomTile = (int)((newY + height - 1) / TILE_SIZE);
 
-        // Out of bounds => treat as blocked
-        if (tileX < 0 || tileX >= map.getWidth() ||
-            tileY < 0 || tileY >= map.getHeight()) {
-            return true;
+        // Check each tile in the enemy's bounding box.
+        for (int x = leftTile; x <= rightTile; x++) {
+            for (int y = topTile; y <= bottomTile; y++) {
+                // Out of bounds implies collision (or can be treated as blocked).
+                if (x < 0 || x >= map.getWidth() || y < 0 || y >= map.getHeight()) {
+                    return true;
+                }
+                // If any tile within the bounding box is a wall, report a collision.
+                if (map.getObjectAt(x, y) == GameObjectEnum.WALL) {
+                    return true;
+                }
+            }
         }
-
-        // If the tile is a WALL, we consider it blocked
-        GameObjectEnum tileObject = map.getObjectAt(tileX, tileY);
-        return (tileObject == GameObjectEnum.WALL);
+        return false;
     }
+
 
     /**
      * Checks if moving to (newX, newY) would overlap another enemy's Rectangle.

@@ -1,4 +1,4 @@
-package com.rpg.game;
+package com.rpg.model;
 
 import com.rpg.config.GameConfig;
 import com.rpg.gameobject.GameObjectEnum;
@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class RPGGame {
+public class GameModel {
     private static final int WINDOW_WIDTH = GameConfig.WINDOW_WIDTH;
     private static final int WINDOW_HEIGHT = GameConfig.WINDOW_HEIGHT;
     private static final int TILE_SIZE = GameConfig.TILE_SIZE;
@@ -62,7 +62,7 @@ public class RPGGame {
     // ----- Input flags set externally by GameLauncher -----
     private boolean moveUp, moveDown, moveLeft, moveRight, dodgeRequested;
 
-    public RPGGame(GameMap gameMap) {
+    public GameModel(GameMap gameMap) {
         this.gameMap = gameMap;
         this.currentMap = gameMap.getMap(1);
     }
